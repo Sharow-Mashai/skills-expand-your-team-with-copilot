@@ -13,39 +13,57 @@ router = APIRouter(
     tags=["activities"]
 )
 
+
 @router.get("", response_model=Dict[str, Any])
 @router.get("/", response_model=Dict[str, Any])
 def get_activities(
     day: Optional[str] = None,
     start_time: Optional[str] = None,
-    end_time: Optional[str] = None
+    end_time: Optional[str] = None,
+    difficulty: Optional[str] = None
 ) -> Dict[str, Any]:
     """
-    Get all activities with their details, with optional filtering by day and time
-    
-    - day: Filter activities occurring on this day (e.g., 'Monday', 'Tuesday')
-    - start_time: Filter activities starting at or after this time (24-hour format, e.g., '14:30')
-    - end_time: Filter activities ending at or before this time (24-hour format, e.g., '17:00')
+    Get all activities with their details, with optional filtering by day,
+    time and difficulty.
+
+    Activities without a specified difficulty are available to all levels.
+    Selecting 'all' returns only activities without a specified difficulty.
     """
     # Build the query based on provided filters
     query = {}
-    
+
     if day:
         query["schedule_details.days"] = {"$in": [day]}
-    
+
     if start_time:
         query["schedule_details.start_time"] = {"$gte": start_time}
-    
+
     if end_time:
         query["schedule_details.end_time"] = {"$lte": end_time}
-    
+
+    # Handle difficulty filtering
+    if difficulty:
+        no_difficulty = [
+            {"difficulty": {"$exists": False}},
+            {"difficulty": None},
+            {"difficulty": ""}
+        ]
+
+        if difficulty.lower() == "all":
+            query["$or"] = no_difficulty
+        else:
+            query["$or"] = no_difficulty + [
+                {"difficulty": difficulty}
+            ]
+
     # Query the database
     activities = {}
     for activity in activities_collection.find(query):
         name = activity.pop('_id')
         activities[name] = activity
-    
+
     return activities
+
 
 @router.get("/days", response_model=List[str])
 def get_available_days() -> List[str]:
