@@ -1,294 +1,8 @@
-document.addEventListener("DOMContentLoaded", () => {
-  // DOM elements
-  const activitiesList = document.getElementById("activities-list");
-  const messageDiv = document.getElementById("message");
-  const registrationModal = document.getElementById("registration-modal");
-  const modalActivityName = document.getElementById("modal-activity-name");
-  const signupForm = document.getElementById("signup-form");
-  const activityInput = document.getElementById("activity");
-  const closeRegistrationModal = document.querySelector(".close-modal");
-
-  // Search and filter elements
-  const searchInput = document.getElementById("activity-search");
-  const searchButton = document.getElementById("search-button");
-  const categoryFilters = document.querySelectorAll(".category-filter");
-  const dayFilters = document.querySelectorAll(".day-filter");
-  const timeFilters = document.querySelectorAll(".time-filter");
-
-  // Authentication elements
-  const loginButton = document.getElementById("login-button");
-  const userInfo = document.getElementById("user-info");
-  const displayName = document.getElementById("display-name");
-  const logoutButton = document.getElementById("logout-button");
-  const loginModal = document.getElementById("login-modal");
-  const loginForm = document.getElementById("login-form");
-  const closeLoginModal = document.querySelector(".close-login-modal");
-  const loginMessage = document.getElementById("login-message");
-
-  // Activity categories with corresponding colors
-  const activityTypes = {
-    sports: { label: "Sports", color: "#e8f5e9", textColor: "#2e7d32" },
-    arts: { label: "Arts", color: "#f3e5f5", textColor: "#7b1fa2" },
-    academic: { label: "Academic", color: "#e3f2fd", textColor: "#1565c0" },
-    community: { label: "Community", color: "#fff3e0", textColor: "#e65100" },
-    technology: { label: "Technology", color: "#e8eaf6", textColor: "#3949ab" },
-  };
-
-  // State for activities and filters
-  let allActivities = {};
-  let currentFilter = "all";
-  let searchQuery = "";
-  let currentDay = "";
-  let currentTimeRange = "";
-
-  // Authentication state
-  let currentUser = null;
-
-  // Time range mappings for the dropdown
-  const timeRanges = {
-    morning: { start: "06:00", end: "08:00" }, // Before school hours
-    afternoon: { start: "15:00", end: "18:00" }, // After school hours
-    weekend: { days: ["Saturday", "Sunday"] }, // Weekend days
-  };
-
-  // Initialize filters from active elements
-  function initializeFilters() {
-    // Initialize day filter
-    const activeDayFilter = document.querySelector(".day-filter.active");
-    if (activeDayFilter) {
-      currentDay = activeDayFilter.dataset.day;
-    }
-
-    // Initialize time filter
-    const activeTimeFilter = document.querySelector(".time-filter.active");
-    if (activeTimeFilter) {
-      currentTimeRange = activeTimeFilter.dataset.time;
-    }
-  }
-
-  // Function to set day filter
-  function setDayFilter(day) {
-    currentDay = day;
-
-    // Update active class
-    dayFilters.forEach((btn) => {
-      if (btn.dataset.day === day) {
-        btn.classList.add("active");
-      } else {
-        btn.classList.remove("active");
-      }
-    });
-
-    fetchActivities();
-  }
-
-  // Function to set time range filter
-  function setTimeRangeFilter(timeRange) {
-    currentTimeRange = timeRange;
-
-    // Update active class
-    timeFilters.forEach((btn) => {
-      if (btn.dataset.time === timeRange) {
-        btn.classList.add("active");
-      } else {
-        btn.classList.remove("active");
-      }
-    });
-
-    fetchActivities();
-  }
-
-  // Check if user is already logged in (from localStorage)
-  function checkAuthentication() {
-    const savedUser = localStorage.getItem("currentUser");
-    if (savedUser) {
-      try {
-        currentUser = JSON.parse(savedUser);
-        updateAuthUI();
-        // Verify the stored user with the server
-        validateUserSession(currentUser.username);
-      } catch (error) {
-        console.error("Error parsing saved user", error);
-        logout(); // Clear invalid data
-      }
-    }
-
-    // Set authentication class on body
-    updateAuthBodyClass();
-  }
-
-  // Validate user session with the server
-  async function validateUserSession(username) {
-    try {
-      const response = await fetch(
-        `/auth/check-session?username=${encodeURIComponent(username)}`
-      );
-
-      if (!response.ok) {
-        // Session invalid, log out
-        logout();
-        return;
-      }
-
-      // Session is valid, update user data
-      const userData = await response.json();
-      currentUser = userData;
-      localStorage.setItem("currentUser", JSON.stringify(userData));
-      updateAuthUI();
-    } catch (error) {
-      console.error("Error validating session:", error);
-    }
-  }
-
-  // Update UI based on authentication state
-  function updateAuthUI() {
-    if (currentUser) {
-      loginButton.classList.add("hidden");
-      userInfo.classList.remove("hidden");
-      displayName.textContent = currentUser.display_name;
-    } else {
-      loginButton.classList.remove("hidden");
-      userInfo.classList.add("hidden");
-      displayName.textContent = "";
-    }
-
-    updateAuthBodyClass();
-    // Refresh the activities to update the UI
-    fetchActivities();
-  }
-
-  // Update body class for CSS targeting
-  function updateAuthBodyClass() {
-    if (currentUser) {
-      document.body.classList.remove("not-authenticated");
-    } else {
-      document.body.classList.add("not-authenticated");
-    }
-  }
-
-  // Login function
-  async function login(username, password) {
-    try {
-      const response = await fetch(
-        `/auth/login?username=${encodeURIComponent(
-          username
-        )}&password=${encodeURIComponent(password)}`,
-        {
-          method: "POST",
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        showLoginMessage(
-          data.detail || "Invalid username or password",
-          "error"
-        );
-        return false;
-      }
-
-      // Login successful
-      currentUser = data;
-      localStorage.setItem("currentUser", JSON.stringify(data));
-      updateAuthUI();
-      closeLoginModalHandler();
-      showMessage(`Welcome, ${currentUser.display_name}!`, "success");
-      return true;
-    } catch (error) {
-      console.error("Error during login:", error);
-      showLoginMessage("Login failed. Please try again.", "error");
-      return false;
-    }
-  }
-
-  // Logout function
-  function logout() {
-    currentUser = null;
-    localStorage.removeItem("currentUser");
-    updateAuthUI();
-    showMessage("You have been logged out.", "info");
-  }
-
-  // Show message in login modal
-  function showLoginMessage(text, type) {
-    loginMessage.textContent = text;
-    loginMessage.className = `message ${type}`;
-    loginMessage.classList.remove("hidden");
-  }
-
-  // Open login modal
-  function openLoginModal() {
-    loginModal.classList.remove("hidden");
-    loginModal.classList.add("show");
-    loginMessage.classList.add("hidden");
-    loginForm.reset();
-  }
-
-  // Close login modal
-  function closeLoginModalHandler() {
-    loginModal.classList.remove("show");
-    setTimeout(() => {
-      loginModal.classList.add("hidden");
-      loginForm.reset();
-    }, 300);
-  }
-
-  // Event listeners for authentication
-  loginButton.addEventListener("click", openLoginModal);
-  logoutButton.addEventListener("click", logout);
-  closeLoginModal.addEventListener("click", closeLoginModalHandler);
-
-  // Close login modal when clicking outside
-  window.addEventListener("click", (event) => {
-    if (event.target === loginModal) {
-      closeLoginModalHandler();
-    }
-  });
-
-  // Handle login form submission
-  loginForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const username = document.getElementById("username").value;
-    const password = document.getElementById("password").value;
-    await login(username, password);
-  });
-
-  // Show loading skeletons
-  function showLoadingSkeletons() {
-    activitiesList.innerHTML = "";
-
-    // Create more skeleton cards to fill the screen since they're smaller now
-    for (let i = 0; i < 9; i++) {
-      const skeletonCard = document.createElement("div");
-      skeletonCard.className = "skeleton-card";
-      skeletonCard.innerHTML = `
-        <div class="skeleton-line skeleton-title"></div>
-        <div class="skeleton-line"></div>
-        <div class="skeleton-line skeleton-text short"></div>
-        <div style="margin-top: 8px;">
-          <div class="skeleton-line" style="height: 6px;"></div>
-          <div class="skeleton-line skeleton-text short" style="height: 8px; margin-top: 3px;"></div>
-        </div>
-        <div style="margin-top: auto;">
-          <div class="skeleton-line" style="height: 24px; margin-top: 8px;"></div>
-        </div>
-      `;
-      activitiesList.appendChild(skeletonCard);
-    }
-  }
-
-  // Format schedule for display - handles both old and new format
-  function formatSchedule(details) {
-    // If schedule_details is available, use the structured data
-    if (details.schedule_details) {
-      const days = details.schedule_details.days.join(", ");
-
       // Convert 24h time format to 12h AM/PM format for display
       const formatTime = (time24) => {
         const [hours, minutes] = time24.split(":").map((num) => parseInt(num));
         const period = hours >= 12 ? "PM" : "AM";
-        const displayHours = hours % 12 || 12; // Convert 0 to 12 for 12 AM
+        const displayHours = hours % 12 || 12;
         return `${displayHours}:${minutes
           .toString()
           .padStart(2, "0")} ${period}`;
@@ -304,7 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return details.schedule;
   }
 
-  // Function to determine activity type (this would ideally come from backend)
+  // Function to determine activity type
   function getActivityType(activityName, description) {
     const name = activityName.toLowerCase();
     const desc = description.toLowerCase();
@@ -363,7 +77,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return "academic";
   }
 
-  // Function to fetch activities from API with optional day and time filters
+  // Function to fetch activities from API with optional filters
   async function fetchActivities() {
     // Show loading skeletons first
     showLoadingSkeletons();
@@ -383,13 +97,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Handle weekend special case
         if (currentTimeRange === "weekend") {
-          // Don't add time parameters for weekend filter
           // Weekend filtering will be handled on the client side
         } else if (range) {
-          // Add time parameters for before/after school
           queryParams.push(`start_time=${encodeURIComponent(range.start)}`);
           queryParams.push(`end_time=${encodeURIComponent(range.end)}`);
         }
+      }
+
+      // Handle difficulty filter
+      if (currentDifficulty) {
+        queryParams.push(
+          `difficulty=${encodeURIComponent(currentDifficulty)}`
+        );
       }
 
       const queryString =
@@ -414,11 +133,32 @@ document.addEventListener("DOMContentLoaded", () => {
     // Clear the activities list
     activitiesList.innerHTML = "";
 
-    // Apply client-side filtering - this handles category filter and search, plus weekend filter
+    // Apply client-side filtering
     let filteredActivities = {};
 
     Object.entries(allActivities).forEach(([name, details]) => {
       const activityType = getActivityType(name, details.description);
+
+      // Activities without a difficulty value are available to every level.
+      const hasNoDifficulty =
+        details.difficulty === undefined ||
+        details.difficulty === null ||
+        details.difficulty === "";
+
+      // "All" shows only activities with no specified difficulty.
+      if (currentDifficulty === "all" && !hasNoDifficulty) {
+        return;
+      }
+
+      // A selected level shows matching activities and activities
+      // available to all levels.
+      if (
+        currentDifficulty !== "all" &&
+        !hasNoDifficulty &&
+        details.difficulty !== currentDifficulty
+      ) {
+        return;
+      }
 
       // Apply category filter
       if (currentFilter !== "all" && activityType !== currentFilter) {
@@ -451,7 +191,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      // Activity passed all filters, add to filtered list
+      // Activity passed all filters
       filteredActivities[name] = details;
     });
 
@@ -471,7 +211,6 @@ document.addEventListener("DOMContentLoaded", () => {
       renderActivityCard(name, details);
     });
   }
-
   // Function to render a single activity card
   function renderActivityCard(name, details) {
     const activityCard = document.createElement("div");
@@ -638,6 +377,13 @@ document.addEventListener("DOMContentLoaded", () => {
       // Update current time filter and fetch activities
       currentTimeRange = button.dataset.time;
       fetchActivities();
+    });
+  });
+
+  // Add event listeners for difficulty filter buttons
+  difficultyFilters.forEach((button) => {
+    button.addEventListener("click", () => {
+      setDifficultyFilter(button.dataset.difficulty || "all");
     });
   });
 
@@ -859,6 +605,7 @@ document.addEventListener("DOMContentLoaded", () => {
   window.activityFilters = {
     setDayFilter,
     setTimeRangeFilter,
+    setDifficultyFilter,
   };
 
   // Initialize app
