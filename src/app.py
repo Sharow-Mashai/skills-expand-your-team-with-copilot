@@ -446,6 +446,23 @@ function setDifficultyFilter(difficulty) {
 
     Object.entries(allActivities).forEach(([name, details]) => {
       const activityType = getActivityType(name, details.description);
+            // Apply difficulty filter
+      const hasNoDifficulty =
+        details.difficulty === undefined ||
+        details.difficulty === null ||
+        details.difficulty === "";
+
+      if (currentDifficulty === "all" && !hasNoDifficulty) {
+        return;
+      }
+
+      if (
+        currentDifficulty !== "all" &&
+        !hasNoDifficulty &&
+        details.difficulty !== currentDifficulty
+      ) {
+        return;
+      }
 
       // Apply category filter
       if (currentFilter !== "all" && activityType !== currentFilter) {
