@@ -99,6 +99,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
     fetchActivities();
   }
+function setDifficultyFilter(difficulty) {
+  currentDifficulty = difficulty;
+
+  difficultyFilters.forEach((btn) => {
+    btn.classList.toggle(
+      "active",
+      btn.dataset.difficulty === difficulty
+    );
+  });
+
+  fetchActivities();
+}
 
   // Check if user is already logged in (from localStorage)
   function checkAuthentication() {
