@@ -413,7 +413,12 @@ function setDifficultyFilter(difficulty) {
           queryParams.push(`end_time=${encodeURIComponent(range.end)}`);
         }
       }
-
+      // Handle difficulty filter
+      if (currentDifficulty) {
+        queryParams.push(
+          `difficulty=${encodeURIComponent(currentDifficulty)}`
+        );
+      }
       const queryString =
         queryParams.length > 0 ? `?${queryParams.join("&")}` : "";
       const response = await fetch(`/activities${queryString}`);
