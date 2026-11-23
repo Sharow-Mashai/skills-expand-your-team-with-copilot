@@ -54,19 +54,27 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // Initialize filters from active elements
-  function initializeFilters() {
-    // Initialize day filter
-    const activeDayFilter = document.querySelector(".day-filter.active");
-    if (activeDayFilter) {
-      currentDay = activeDayFilter.dataset.day;
-    }
-
-    // Initialize time filter
-    const activeTimeFilter = document.querySelector(".time-filter.active");
-    if (activeTimeFilter) {
-      currentTimeRange = activeTimeFilter.dataset.time;
-    }
+function initializeFilters() {
+  // Initialize day filter
+  const activeDayFilter = document.querySelector(".day-filter.active");
+  if (activeDayFilter) {
+    currentDay = activeDayFilter.dataset.day;
   }
+
+  // Initialize time filter
+  const activeTimeFilter = document.querySelector(".time-filter.active");
+  if (activeTimeFilter) {
+    currentTimeRange = activeTimeFilter.dataset.time;
+  }
+
+  // Initialize difficulty filter
+  const activeDifficultyFilter = document.querySelector(
+    ".difficulty-filter.active"
+  );
+  if (activeDifficultyFilter) {
+    currentDifficulty = activeDifficultyFilter.dataset.difficulty || "all";
+  }
+}
 
   // Function to set day filter
   function setDayFilter(day) {
