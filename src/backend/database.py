@@ -201,6 +201,6 @@ initial_teachers = [
         "username": "principal",
         "display_name": "Principal Martinez",
         "password": hash_password("admin789"),
-        "role": "admin'
+        "role": "admin"
     }
 ]
