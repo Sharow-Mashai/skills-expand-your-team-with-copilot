@@ -909,6 +909,12 @@ function setDifficultyFilter(difficulty) {
   window.activityFilters = {
     setDayFilter,
     setTimeRangeFilter,
+      // Expose filter functions to window for future UI control
+  window.activityFilters = {
+    setDayFilter,
+    setTimeRangeFilter,
+    setDifficultyFilter,
+  };
   };
 
   // Initialize app
