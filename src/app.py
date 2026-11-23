@@ -684,6 +684,12 @@ function setDifficultyFilter(difficulty) {
       fetchActivities();
     });
   });
+    // Add event listeners for difficulty filter buttons
+  difficultyFilters.forEach((button) => {
+    button.addEventListener("click", () => {
+      setDifficultyFilter(button.dataset.difficulty || "all");
+    });
+  });
 
   // Open registration modal
   function openRegistrationModal(activityName) {
